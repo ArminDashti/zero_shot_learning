@@ -1,3 +1,5 @@
+# https://github.com/lzrobots/DeepEmbeddingModel_ZSL
+
 import math
 import torch
 import torch.nn as nn
