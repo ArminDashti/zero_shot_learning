@@ -16,7 +16,8 @@ device='cuda'
 # dataset_dir = 'c:/users/armin/desktop/Animals_with_Attributes2/JPEGImages'
 dataset_dir = 'c:/arminpc/Animals_with_Attributes2/JPEGImages'
 dataset_folders = os.listdir(dataset_dir)
-         
+
+
 # attribute_dir = 'c:/users/armin/desktop/Animals_with_Attributes2/predicate-matrix-binary.txt'
 attribute_dir = 'c:/arminpc/Animals_with_Attributes2/predicate-matrix-binary.txt'
 df_attribute = pd.read_csv(attribute_dir, sep=" ", header=None)        
@@ -34,15 +35,24 @@ train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_s
 
 v = next(iter(train_dataloader))
 #%%
-extraction_features_model = torch.hub.load('pytorch/vision:v0.10.0', 'vgg16', pretrained=True).to(device)
-extraction_features_model.classifier = nn.Sequential(*[extraction_features_model.classifier[i] for i in range(4)])
-extraction_features_model.eval()
+extraction_features_model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=True).to(device)
+# extraction_features_model.classifier = nn.Sequential(*[extraction_features_model.classifier[i] for i in range(4)])
 
+class Identity(nn.Module):
+    def __init__(self):
+        super(Identity, self).__init__()
+        
+    def forward(self, x):
+        return x
+    
+extraction_features_model.fc = Identity()
+extraction_features_model.eval()
+#%%
 class ZSL(nn.Module):
     def __init__ (self):
         super().__init__()
         self.Linear1 = nn.Linear(85,700)
-        self.Linear2 = nn.Linear(700,4096)
+        self.Linear2 = nn.Linear(700,2048)
         self.relu = nn.ReLU()
     
     def forward(self, x):
@@ -52,9 +62,6 @@ class ZSL(nn.Module):
         x = self.Linear2(x)
         x = self.relu(x)
         return x
-        
-        
-
 #%%
 def input_binary(input_batch):
     new_input = []
@@ -63,13 +70,13 @@ def input_binary(input_batch):
         i = df_attribute.iloc[i].to_numpy()[:-1]
         new_input.append(i)
     return torch.FloatTensor(new_input)
-        
-        
-    
+
+
 model = ZSL().to(device)
 model.train()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 loss_fn = nn.MSELoss()
+
 
 for epoch in range(0,2):
     total_loss = 0
@@ -81,11 +88,11 @@ for epoch in range(0,2):
         output = extraction_features_model(output).to(device)
         predict = model(input_batch)
         loss = loss_fn(predict, output)
-        print(loss.item())
+        # print(loss.item())
         total_loss += loss.item()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)
         optimizer.step()
-        if i==1000: sys.exit()
+    print(total_loss)
+        # if i==50: sys.exit()
 #%%
-total_loss
