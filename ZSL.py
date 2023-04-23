@@ -96,3 +96,11 @@ for epoch in range(0,2):
     print(total_loss)
         # if i==50: sys.exit()
 #%%
+loss = nn.MSELoss()
+loss2 = nn.MSELoss()
+input = torch.randn(3, 5, requires_grad=True)
+target = torch.randn(3, 5)
+output = loss(input, target)
+output2 = loss2(input, target)
+o  = output + output2
+o
